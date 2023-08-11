@@ -1,0 +1,105 @@
+<script>
+    (function marketoFormReceiver(MktoForms2) {
+        "use strict";
+
+        function getParams() {
+            var params = new URLSearchParams(window.location.search);
+            var result = {};
+            var entries = params.entries();
+
+            for (var entry = entries.next(); !entry.done; entry = entries.next()) {
+                var key = entry.value[0];
+                var value = entry.value[1];
+                result[key] = value;
+            }
+
+            return result;
+        }
+
+        function getExpiryRecord(value) {
+            var expiryPeriod = 90 * 24 * 60 * 60 * 1000;
+            var expiryDate = new Date().getTime() + expiryPeriod;
+            return {
+                value: value,
+                expiryDate: expiryDate
+            };
+        }
+
+        function setLocalStorage() {
+            var params = getParams();
+            var result = {};
+
+            for (var parameterName in params) {
+                if (parameterName.indexOf('utm') !== -1 || parameterName.indexOf('gclid') !== -1) {
+                    var parameterValue = params[parameterName];
+                    var record = null;
+
+                    if (parameterValue) {
+                        record = getExpiryRecord(parameterValue);
+                        localStorage.setItem(parameterName, JSON.stringify(record));
+                    }
+
+                    var storedParam = record || JSON.parse(localStorage.getItem(parameterName));
+                    var isStoredParamValid = storedParam && new Date().getTime() < storedParam.expiryDate;
+
+                    if (isStoredParamValid) {
+                        result[parameterName] = storedParam.value;
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        function trimString(string) {
+            return string.replace(/[^a-zA-Z]/g, '').toLowerCase().trim();
+        }
+
+        function arrayPartiallyIncludesString(string, array) {
+            for (var i in array) {
+                if (trimString(array[i]).indexOf(trimString(string)) !== -1) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        function getArrayKeyFromString(string, array) {
+            for (var i in array) {
+                if (trimString(array[i]).indexOf(trimString(string)) !== -1) {
+                    return array[i];
+                }
+            }
+
+            return null;
+        }
+
+        function convertLocalStorageToMarketoFields(array) {
+            var localStorageResults = setLocalStorage();
+            var hiddenFields = {};
+
+            for (var key in localStorageResults) {
+                if (arrayPartiallyIncludesString(key, array) === true) {
+                    var marketoFieldId = getArrayKeyFromString(key, array);
+                    hiddenFields[marketoFieldId] = localStorageResults[key];
+                }
+            }
+
+            return hiddenFields;
+        }
+
+        if (MktoForms2) {
+            MktoForms2.whenReady(function (form) {
+                var possibleFields = [
+                    'uTMSourceMostRecent',
+                    'uTMMediumMostRecent',
+                    'uTMCampaignMostRecent',
+                    'uTMContentMostRecent',
+                    'gCLID'
+                ];
+                form.addHiddenFields(convertLocalStorageToMarketoFields(possibleFields));
+            });
+        }
+    })(window.MktoForms2);
+</script>

@@ -1,0 +1,84 @@
+<script>
+    (function marketoFormListener(MktoForms2) {
+        "use strict";
+        function waitForError() {
+            var element, input, mktoErrorMsg;
+            element = document.querySelector(".mktoErrorMsg");
+            if (element) {
+                mktoErrorMsg = element.textContent || element.innerText;
+                input = document.querySelector("input.mktoInvalid, .mktoInvalid input");
+                window.dataLayer.push({
+                    "event": "mkto.form.error",
+                    "mkto.form.error.message": mktoErrorMsg,
+                    "gtm.element": input,
+                    "gtm.elementClasses": input && input.className || "",
+                    "gtm.elementId": input && input.id || "",
+                    "gtm.elementName": input && input.name || "",
+                    "gtm.elementTarget": input && input.target || ""
+                });
+            }
+        }
+
+        if (MktoForms2) {
+            MktoForms2.whenReady(function handleReady(form) {
+                window.dataLayer.push({
+                    "event": "mkto.form.ready",
+                    "mkto.form.id": form.getId(),
+                    "mkto.form.submittable": form.submittable(),
+                    "mkto.form.allFieldsFilled": form.allFieldsFilled(),
+                    "mkto.form.values": form.getValues()
+                });
+
+                form.onValidate(function handleValidate(valid) {
+                    window.dataLayer.push({
+                        "event": "mkto.form.validate",
+                        "mkto.form.valid": valid
+                    });
+                    setTimeout(waitForError, 0);
+                });
+
+                form.onSubmit(function handleSubmit(thisForm) {
+                    var button;
+                    button = form.getFormElem().find("button[type=\"submit\"]");
+                    window.dataLayer.push({
+                        "event": "mkto.form.submit",
+                        "mkto.form.id": form.getId(),
+                        "mkto.form.submittable": form.submittable(),
+                        "mkto.form.allFieldsFilled": form.allFieldsFilled(),
+                        "mkto.form.values": form.getValues(),
+                        "mkto.form.button": {
+                            "classes": button.attr("class"),
+                            "text": button.text(),
+                            "type": "submit"
+                        }
+                    });
+                });
+
+                form.onSuccess(function handleSuccess(values, followUpUrl) {
+                    window.dataLayer.push({
+                        "event": "mkto.form.success",
+                        "mkto.form.id": form.getId(),
+                        "mkto.form.values": values,
+                        "mkto.form.followUpUrl": followUpUrl,
+                        "eventCallback": function () {
+                            document.location.href = followUpUrl;
+                        },
+                        "eventTimeout": 3000
+                    });
+                    return false;
+                });
+
+            });
+
+            MktoForms2.whenRendered(function handleRendered(form) {
+                window.dataLayer.push({
+                    "event": "mkto.form.rendered",
+                    "mkto.form.id": form.getId(),
+                    "mkto.form.submittable": form.submittable(),
+                    "mkto.form.allFieldsFilled": form.allFieldsFilled(),
+                    "mkto.form.values": form.getValues()
+                });
+            });
+        }
+    })(window.MktoForms2);
+</script>
